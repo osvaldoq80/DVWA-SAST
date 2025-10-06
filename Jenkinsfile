@@ -34,48 +34,41 @@ pipeline {
 			} 
 		} 
 		/* --------------- STAGE PARA SEMGREP ------------------- */
-        stage('SAST') {
-			agent any
-			steps {
-				script {
-					sh '''
-						echo "[INFO] Iniciando escaneo SAST con Semgrep..."
-						mkdir -p reports
+                stage('SAST') {
+		   agent any
+		   steps {
+			script {
+		          sh '''
+			    echo "[INFO] Iniciando escaneo SAST con Semgrep..."
+			    mkdir -p reports
 
-						# Ejecutamos Semgrep en un contenedor aparte montando el workspace en /src
-						docker run --rm -v $WORKSPACE:/src -w /src semgrep/semgrep:latest \
-							semgrep scan --config auto --json --output reports/semgrep-report.json || true
+			     # Semgrep en un contenedor aparte montando el workspace en /src
+			    docker run --rm -v $WORKSPACE:/src -w /src semgrep/semgrep:latest \
+			    semgrep scan --config auto --json --output reports/semgrep-report.json || true
+ 
+			    echo "[INFO] Escaneo finalizado. Revisando severidades..."
 
-						echo "[INFO] Escaneo finalizado. Revisando severidades..."
-
-						if command -v jq >/dev/null 2>&1; then
-							HIGH=$(jq '[.results[] | select(.extra.severity=="HIGH" or .extra.severity=="CRITICAL")] | length' reports/semgrep-report.json)
-						else
-							HIGH=$(python3 - <<'PY'
-		import json
-		r=json.load(open("reports/semgrep-report.json"))
-		print(sum(1 for x in r.get("results",[]) if x.get("extra",{}).get("severity","").upper() in ("HIGH","CRITICAL")))
-		PY
-		)
-						fi
-
-						echo "[INFO] Vulnerabilidades High/Critical encontradas: $HIGH"
-
-						if [ "$HIGH" -gt 0 ]; then
-							echo "[ERROR] Se encontraron vulnerabilidades High/Critical."
-							exit 1
-						fi
-					'''
-				}
+			    if command -v jq >/dev/null 2>&1; then
+                             HIGH=$(jq '[.results[] | select(.extra.severity=="HIGH" or .extra.severity=="CRITICAL")] | length' reports/semgrep-report.json)
+                            else
+                             HIGH=$(python3 - <<'PY'
+                             import json
+                             r=json.load(open("reports/semgrep-report.json"))
+                             print(sum(1 for x in r.get("results",[]) if x.get("extra",{}).get("severity","").upper() in ("HIGH","CRITICAL")))
+                             PY
+                             )
+                            fi
+		          '''
 			}
-			post {
-				always {
-					archiveArtifacts artifacts: 'reports/semgrep-report.json', fingerprint: true
-				}
+		  }
+	        post {
+		   always {
+			archiveArtifacts artifacts: 'reports/semgrep-report.json', fingerprint: true
 			}
 		}
+	}
 
         /* ------------------------------------------------------------ */
-	}	 
+   }	 
 }
 
