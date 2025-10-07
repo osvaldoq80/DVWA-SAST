@@ -2,71 +2,83 @@ pipeline {
     agent none 
     stages  { 
         stage('Checkout') { 
-			agent { 
-				docker { image 'php:8.2-cli' } 
-			} 
-			steps { 
-				sh 'php --version'
-			} 
+		agent { 
+			docker { image 'php:8.2-cli' } 
 		} 
-		stage('Compilation') { 
-			agent { 
-				docker { image 'php:8.2-cli' } 
-			} 
-			steps { 
-				sh 'echo "Compilando..."' 
-			} 
+		steps { 
+			sh 'php --version'
 		} 
-		stage('Build') { 
-			agent { 
-				docker { image 'php:8.2-cli' } 
-			} 
-			steps { 
-				sh 'echo "docker build -t my-php-app ."' 
-			} 
+	}
+	stage('Compilation') { 
+		agent {
+			docker { image 'php:8.2-cli' } 
 		} 
-		stage('Deploy') { 
-			agent { 
-				docker { image 'php:8.2-cli' } 
-			} 
-			steps { 
-				sh 'echo "docker run my-php-app ."'
-			} 
+		steps { 
+			sh 'echo "Compilando..."' 
 		} 
-		/* --------------- STAGE PARA SEMGREP ------------------- */
-                stage('SAST') {
-		   agent any
-		   steps {
+	} 
+	stage('Build') { 
+		agent { 
+			docker { image 'php:8.2-cli' } 
+		} 
+		steps { 
+			sh 'echo "docker build -t my-php-app ."' 
+		} 
+	} 
+	stage('Deploy') { 
+		agent {
+			docker { image 'php:8.2-cli' } 
+		} 
+		steps { 
+			sh 'echo "docker run my-php-app ."'
+		} 
+	} 
+	/* --------------- STAGE PARA SEMGREP ------------------- */
+        stage('SAST') {
+		agent any
+		steps {
 			script {
-		          sh '''
-			    echo "[INFO] Iniciando escaneo SAST con Semgrep..."
-			    mkdir -p reports
+				sh '''
+				echo "[INFO] Iniciando escaneo SAST con Semgrep..."
+				mkdir -p "${WORKSPACE}/reports"
+	
+				# Montar el volumen Docker donde Jenkins guarda /var/jenkins_home
+				docker run --rm \
+				     -v jenkins-data:/var/jenkins_home \
+				     -w "${WORKSPACE}" \
+				     semgrep/semgrep:latest \
+				     semgrep scan --config auto --json --output reports/semgrep-report.json --disable-version-check || true
 
-			     # Semgrep en un contenedor aparte montando el workspace en /src
-			    docker run --rm -v $WORKSPACE:/src -w /src semgrep/semgrep:latest \
-			    semgrep scan --config auto --json --output reports/semgrep-report.json || true
- 
-			    echo "[INFO] Escaneo finalizado. Revisando severidades..."
+				echo "[INFO] Escaneo finalizado. Analizando severidades..."
 
-			    if command -v jq >/dev/null 2>&1; then
-                             HIGH=$(jq '[.results[] | select(.extra.severity=="HIGH" or .extra.severity=="CRITICAL")] | length' reports/semgrep-report.json)
-                            else
-                             HIGH=$(python3 - <<'PY'
-                             import json
-                             r=json.load(open("reports/semgrep-report.json"))
-                             print(sum(1 for x in r.get("results",[]) if x.get("extra",{}).get("severity","").upper() in ("HIGH","CRITICAL")))
-                             PY
-                             )
-                            fi
-		          '''
+				if command -v jq >/dev/null 2>&1; then
+					HIGH=$(jq '[.results[] | select(.extra.severity=="HIGH" or .extra.severity=="CRITICAL")] | length' "${WORKSPACE}/reports/semgrep-report.json")
+				else
+					HIGH=$(python3 - <<'PY'
+		import json
+		r=json.load(open("reports/semgrep-report.json"))
+		print(sum(1 for x in r.get("results",[]) if x.get("extra",{}).get("severity","").upper() in ("HIGH","CRITICAL")))
+		PY
+		)
+				fi
+
+				echo "[INFO] Vulnerabilidades High/Critical encontradas: $HIGH"
+
+				if [ "$HIGH" -gt 0 ]; then
+					echo "[ERROR] Se encontraron vulnerabilidades High/Critical."
+					exit 1
+				fi
+				'''
 			}
-		  }
-	        post {
-		   always {
+		}
+	post {
+		always {
 			archiveArtifacts artifacts: 'reports/semgrep-report.json', fingerprint: true
 			}
 		}
 	}
+
+			    
 
         /* ------------------------------------------------------------ */
    }	 
