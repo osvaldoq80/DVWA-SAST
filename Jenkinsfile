@@ -45,7 +45,8 @@ pipeline {
 				# Montar el volumen Docker donde Jenkins guarda /var/jenkins_home
 				docker run --rm \
 				     -v jenkins-data:/var/jenkins_home \
-				     -w "${WORKSPACE}" \
+				     -v /var/jenkins_home/workspace/Test-DVWA-Semgrep-SAST:/src \
+				     -w /src \
 				     semgrep/semgrep:latest \
 				     semgrep scan --config auto --json --output reports/semgrep-report.json --disable-version-check || true
 
