@@ -40,15 +40,10 @@ pipeline {
 			script {
 				sh '''
 				echo "[INFO] Iniciando escaneo SAST con Semgrep..."
-				mkdir -p "${WORKSPACE}/reports"
+				mkdir -p reports
 	
-				# Montar el volumen Docker donde Jenkins guarda /var/jenkins_home
-				docker run --rm \
-				     -v jenkins-data:/var/jenkins_home \
-				     -v /var/jenkins_home/workspace/Test-DVWA-Semgrep-SAST:/src \
-				     -w /src \
-				     semgrep/semgrep:latest \
-				     semgrep scan --config auto --json --output reports/semgrep-report.json --disable-version-check || true
+				# Ejecutar el escaneo con Semgrep
+				semgrep scan --config auto --json --output reports/semgrep-report.json || true
 
 				echo "[INFO] Escaneo finalizado. Analizando severidades..."
 
