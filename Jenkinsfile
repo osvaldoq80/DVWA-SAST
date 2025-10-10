@@ -3,15 +3,17 @@ pipeline {
     stages  {
  /* --------------- STAGE PARA SEMGREP ------------------- */
         stage('SAST') {
-                agent agent {
+                agent {
                         docker { 
 				image 'semgrep/semgrep' 
-				arg '-v "${PWD}:/src"'	
+				args '-v "${PWD}:/src"'	
 			}
 		}
 		steps {
-                        sh 'cd /src'
-			sh 'semgrep scan'
+                        sh '''
+			   cd /src
+			   semgrep scan
+			'''
                 }
 
         }
