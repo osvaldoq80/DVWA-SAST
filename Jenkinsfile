@@ -8,6 +8,7 @@ pipeline {
 				image 'semgrep/semgrep' 
 				arg '-v "${PWD}:/src"'	
 			}
+		}
 		steps {
                         sh 'cd /src'
 			sh 'semgrep scan'
