@@ -12,7 +12,8 @@ pipeline {
 			# Ejecutar Semgrep montando solo el workspace del job, no todo Jenkins
 				docker run --rm \
 				--volumes-from jenkins-blueocean \
-				-w /var/jenkins_home/workspace/Test-DVWA-Semgrep-SAST \
+				-w /var/jenkins_home/workspace/Test-DVWA-Semgrep-SAST:/src \
+				-w /src \
 				semgrep/semgrep:latest \
 				semgrep scan --config p/owasp-top-ten --json --output reports/semgrep-report.json --disable-version-check || true
 
