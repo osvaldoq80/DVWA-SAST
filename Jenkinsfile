@@ -6,20 +6,21 @@ pipeline {
 		agent any
 			steps {
 				script {
-					sh '''
-					echo "[INFO] Iniciando escaneo SAST con Semgrep..."
-					mkdir -p reports
+					sh """
+						echo "[INFO] Iniciando escaneo SAST con Semgrep..."
+						mkdir -p reports
 
-					docker run --rm \
-					-v "${WORKSPACE}:/src" \
-					-w /src \
-					semgrep/semgrep:latest \
-					semgrep scan --config p/owasp-top-ten \
-					--json --output reports/semgrep-report.json \
-					--disable-version-check
+						# Se ejecuta Semgrep en un contenedor aparte montando el workspace
+						docker run --rm \
+							-v "${WORKSPACE}:/src" \
+							-w /src \
+							semgrep/semgrep:latest \
+							semgrep scan --config p/owasp-top-ten \
+							--json --output reports/semgrep-report.json \
+							--disable-version-check
 
-					echo "[INFO] Escaneo finalizado. Revisando severidades..."
-					'''
+						echo "[INFO] Escaneo finalizado. Revisando severidades..."
+					"""
 				}
 			}
 			post {
