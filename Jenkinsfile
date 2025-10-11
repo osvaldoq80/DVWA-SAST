@@ -2,30 +2,34 @@ pipeline {
     agent none 
     stages  {
  /* --------------- STAGE PARA SEMGREP ------------------- */
-	stage('SAST') {	
+	stage('SAST') {
 		agent any
 			steps {
-				sh '''
-				echo "[INFO] Iniciando escaneo SAST con Semgrep..."
-				mkdir -p reports
+				script {
+					sh '''
+					echo "[INFO] Iniciando escaneo SAST con Semgrep..."
+					mkdir -p reports
 
-			# Ejecutar Semgrep montando solo el workspace del job, no todo Jenkins
-				docker run --rm \
-				--volumes-from jenkins-blueocean \
-				-w /var/jenkins_home/workspace/Test-DVWA-Semgrep-SAST:/src \
-				-w /src \
-				semgrep/semgrep:latest \
-				semgrep scan --config p/owasp-top-ten --json --output reports/semgrep-report.json --disable-version-check || true
+					docker run --rm \
+					-v "${WORKSPACE}:/src" \
+					-w /src \
+					semgrep/semgrep:latest \
+					semgrep scan --config p/owasp-top-ten \
+					--json --output reports/semgrep-report.json \
+					--disable-version-check
 
-				echo "[INFO] Escaneo finalizado. Revisando severidades..."
-				'''
-				}
-			post {
-				always {
-				archiveArtifacts artifacts: 'reports/semgrep-report.json', fingerprint: true
+					echo "[INFO] Escaneo finalizado. Revisando severidades..."
+					'''
 				}
 			}
-	}      
+			post {
+				always {
+					archiveArtifacts artifacts: 'reports/semgrep-report.json', fingerprint: true
+				}
+			}
+		}
+
+				      
 
 /* ------------------------------------------------------------ */
  
