@@ -5,16 +5,12 @@ pipeline {
         stage('SAST - Semgrep básico') {
             steps {
                 script {
-                    // Guardamos el path real del workspace (más confiable que ${WORKSPACE} directo)
-                    def ws = "${env.WORKSPACE}"
-
                     sh """
                         echo "[INFO] Iniciando escaneo SAST con Semgrep..."
                         mkdir -p reports
 
-                        # Ejecutar Semgrep montando el workspace real
                         docker run --rm \
-                            -v ${ws}:/src \
+                            -v "\$(pwd):/src" \
                             -w /src \
                             semgrep/semgrep:latest \
                             semgrep scan --json --output reports/semgrep-report.json --disable-version-check
