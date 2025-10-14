@@ -10,7 +10,7 @@ pipeline {
                         mkdir -p reports
 
                         docker run --rm \
-                            -v "${PWD}:/src" \
+                            -v "${pwd}:/src" \
                             -w /src \
                             semgrep/semgrep:latest \
                             semgrep scan --json --output reports/semgrep-report.json --disable-version-check
