@@ -1,5 +1,5 @@
 pipeline { 
-    agent none 
+    agent any 
     stages  {
  /* --------------- STAGE PARA SEMGREP ------------------- */
 	stage('SAST') {
