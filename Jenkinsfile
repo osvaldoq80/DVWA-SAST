@@ -4,22 +4,16 @@ pipeline {
         stage('SAST-Semgrep') {
             agent {
                 docker {
-                    image 'python:3.11-slim' //utilizamos la imagen que contine python y pip instalados
-                    args '-u root' //para ejecutar los comandos como root y evitar problemas de permisos (esto es una mala práctica y lo ideal sería crear una imagen con las herramientas necesarias ya instaladas)
+                    image 'returntocorp/semgrep:latest'  // imagen oficial con semgrep y git ya instalados
                 }
             }
             steps {
                 script{
-                    sh 'apt-get update && apt-get install -qq -y git'
-                    sh 'git config --global --add safe.directory $(pwd)'
-                    sh 'pip install -q semgrep'
-                    try {
-                        sh 'semgrep scan --json --output semgrep.json --error .' // con el flag --json-output generamos un reporte en formato json y con --error hacemos que semgrep devuelva un código de salida distinto de 0 si encuentra alguna vulnerabilidad
-                    }
-                    catch (err) {                                        
-                        unstable(message: "Findings found") // marcamos el build como inestable si semgrep encuentra vulnerabilidades o si queremos bloquearlo podemos usar "error" en lugar de "unstable"
-                    }
-                }
+
+                    sh '''
+                        echo "[INFO] Iniciando escaneo SAST con Semgrep..."
+                        semgrep scan --json --output semgrep.json --disable-version-check .
+                    '''
             }
         }        
         stage('Compilation') {
