@@ -8,14 +8,15 @@ pipeline {
                 }
             }
             steps {
-                script{
-
+                script {
                     sh '''
                         echo "[INFO] Iniciando escaneo SAST con Semgrep..."
                         semgrep scan --json --output semgrep.json --disable-version-check .
                     '''
+                }
             }
-        }        
+        }
+
         stage('Compilation') {
             agent {
                 docker { image 'php:8.2-cli' }
@@ -24,6 +25,7 @@ pipeline {
                 sh 'echo "Compilando..."'
             }
         }
+
         stage('Build') {
             agent {
                 docker { image 'php:8.2-cli' }
@@ -32,6 +34,7 @@ pipeline {
                 sh 'echo "docker build -t my-php-app ."'
             }
         }
+
         stage('Deploy') {
             agent {
                 docker { image 'php:8.2-cli' }
@@ -41,9 +44,10 @@ pipeline {
             }
         }
     }
+
     post {
         always {
-            archiveArtifacts artifacts: 'semgrep.json', fingerprint: true // guardamos el reporte de semgrep como artefacto del build para que persista en Jenkins
+            archiveArtifacts artifacts: 'semgrep.json', fingerprint: true
         }
     }
 }
